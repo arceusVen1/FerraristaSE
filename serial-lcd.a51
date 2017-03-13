@@ -1,14 +1,15 @@
 ;serial connection and lcd display
 ;tempo d'attente entre recep doit être sur timer 1 afin de pas interférer avec la tempo sur timer 0
 ;variable LCD--------------------------
-RS		bit		P1.5
-RW		bit		P1.6
-E		bit		P1.7
+RS		bit		P0.5
+RW		bit		P0.6
+E		bit		P0.7
 LCD	equ		P2
 busy	bit		P2.7
 
 ;variable-------------------------------
 texte				data		30h
+tampon			equ		34h
 
 ;reset----------------------------------
 					org		0000h
@@ -32,14 +33,17 @@ printes:
 ;sous-programme d'interruption----------
 ssprgmes:
 					clr		ri					;restart reception
+					clr		es
 					;clr		ex0
-					mov		r0,#texte
-					mov		@r0,sbuf       ;place text to be displayed in the RAM at @30h
+					mov		r0,#texte     
 					mov		a,sbuf
 					clr		acc.7
+					mov		@r0,a				;place text to be displayed in the RAM at @30h
 					inc		r0
 					mov		@r0,#00h
 					mov		r0,#texte
+					lcall		envoi_message
+					setb		es
 					reti
 
 ;initialisation du LCD------------------
@@ -146,38 +150,41 @@ envoi_message:
 debut:			
 					mov		tmod,#21h		;timer1 i mode 2 and timer0 in mode 1
 					lcall		init_lcd
-					setb		ea	
-capture:
-					;mov		b,#20h
-					;anl		tmod,b			;timer1 in mode2 whithout modifyin timer0mod 
-					;mov		pcon,#80h		;doubles speed, not for production
-					mov		tl1,#0e6h		;for speed, not production value
-					mov		th1,#0e6h		;same as above
-					setb		tr1				;start timer1 for defining speed
 					mov		r0,#texte      ;put the RAM address of texte in R0
-					clr		ti
-					clr		ri
-					setb		es
-					mov		scon,#50h		;start reception
 					mov		a,#34h
 					mov		@r0,a
 					inc		r0
 					mov		@r0,#00h
 					lcall		envoi_message
-attente:											;wait for end of message signal (0 in ascii=30h)
-					jz			termine_recep
-					cjne		a,#34h,attente	
-termine_recep:
-					clr		es
-					mov		scon,#00h		;stop reception/emission
-					clr 		tr1
-display:
+					mov		tl1,#0e6h		;for speed, not production value
+					mov		th1,#0e6h		;same as above
+					;mov		tampon,#34h
+					setb		ea	
+capture:
+					;mov		b,#20h
+					;anl		tmod,b			;timer1 in mode2 whithout modifyin timer0mod 
+					;mov		pcon,#80h		;doubles speed, not for production
+					setb		tr1				;start timer1 for defining speed
+					clr		ti
+					clr		ri
+					setb		es
+					mov		scon,#50h		;start reception
+;attente:											;wait for end of message signal (0 in ascii=30h)
+					;cjne		@r0,#tampon,termine_recep
+					;sjmp		attente	
+;termine_recep:
+					;clr		es
+					;mov		scon,#00h		;stop reception/emission
+					;clr 		tr1
+					;mov		#tampon,@r0
+;display:
 					;mov		r1,#texte		;R1 must be a usable copy of R0 while R0 will be used for data registering and R& for display
-					lcall		envoi_message
-					setb		P3.2
+					;lcall		envoi_message
+					;setb		P3.2
 					;clr		ie0
 					;setb		ex0				;int0
 					;setb		it0				;front descendant de P3.2
-					sjmp		capture 
+					sjmp		$ 
 					end 
+
 
