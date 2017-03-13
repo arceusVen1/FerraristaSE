@@ -9,7 +9,6 @@ busy	bit		P2.7
 
 ;variable-------------------------------
 texte				data		30h
-tampon			equ		34h
 
 ;reset----------------------------------
 					org		0000h
@@ -29,18 +28,19 @@ ssprgmes:
 					clr		es
 					mov		r0,#texte     
 					mov		a,sbuf
+					
 					clr		acc.7
 					mov		@r0,a				;place text to be displayed in the RAM at @30h
 msg_centre:
-					cjne		@r0,#4h,msg_droite
+					cjne		@r0,#43h,msg_droite
 					mov		dptr,#txt_centre
 					sjmp		envoi
 msg_droite:	
-					cjne		@r0,#4,msg_gauche
+					cjne		@r0,#44h,msg_gauche
 					mov		dptr,#txt_droite
 					sjmp		envoi
 msg_gauche:
-					cjne		@r0,#4,msg_out
+					cjne		@r0,#47h,msg_out
 					mov		dptr,#txt_gauche
 					sjmp		envoi
 msg_out:
@@ -148,16 +148,16 @@ envoi_message_ligne1:
 					ret
 ;texte a sauvegarder:
 txt_out:
-					db			"HORS DE LA CIBLE"
+					db			'HORS DE LA CIBLE'
 					db			0
 txt_centre:
-					db			"PILE AU CENTRE !"
+					db			'PILE AU CENTRE !'
 					db			0
 txt_gauche:
-					db			"TROP A GAUCHE !!"
+					db			'TROP A GAUCHE !!'
 					db			0
 txt_droite:
-					db			"TROP A DROITE !!"
+					db			'TROP A DROITE !!'
 					db			0
 ;debut du programme--------------------
 debut:			
@@ -180,5 +180,8 @@ capture:
 					mov		scon,#50h		;start reception
 					sjmp		$ 
 					end 
+
+
+
 
 
