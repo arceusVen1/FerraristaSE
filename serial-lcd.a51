@@ -17,13 +17,6 @@ tampon			equ		34h
 					
 ;interruption---------------------------
 					org		0003h
-printext0:
-					push 		psw
-					push		acc
-					lcall		envoi_message
-					pop		acc
-					pop 		psw
-					reti
 				
 					org		0023h
 printes:
@@ -34,15 +27,26 @@ printes:
 ssprgmes:
 					clr		ri					;restart reception
 					clr		es
-					;clr		ex0
 					mov		r0,#texte     
 					mov		a,sbuf
 					clr		acc.7
 					mov		@r0,a				;place text to be displayed in the RAM at @30h
-					inc		r0
-					mov		@r0,#00h
-					mov		r0,#texte
-					lcall		envoi_message
+msg_centre:
+					cjne		@r0,#4h,msg_droite
+					mov		dptr,#txt_centre
+					sjmp		envoi
+msg_droite:	
+					cjne		@r0,#4,msg_gauche
+					mov		dptr,#txt_droite
+					sjmp		envoi
+msg_gauche:
+					cjne		@r0,#4,msg_out
+					mov		dptr,#txt_gauche
+					sjmp		envoi
+msg_out:
+					mov		dptr,#txt_out
+envoi:	
+					lcall		envoi_message_ligne1
 					setb		es
 					reti
 
@@ -126,39 +130,44 @@ ligne_2:
 					
 ;sous programme d'émission---------------
 emi_car:											;emission caractère à la suite jusqu'à zéro
-					mov		a,@r0
-					cjne		a,#00h,emi_data	;si a= | !> end of message return to beginning
-					mov		r0,#texte
+					clr		a
+					movc		a,@a+dptr
+					cjne		a,#00h,emi_data	;si a=0 => end of message return to beginning
 					sjmp		fin_emi
-;test_chariot:
-					;cjne		a,#5ch,emi_data	;si a=/= \ on passe à la ligne
-					;inc		r1     				;next line initiated
-					;sjmp		fin_emi
 emi_data:
 					mov		lcd,a
 					lcall		en_lcd_data
 					lcall		tempo				;par expérience il vaut mieux faire une tempo meme si pas donner par constructeur
-					inc 		r0
+					inc 		dptr
 					sjmp		emi_car
 fin_emi:	
 					ret
-envoi_message:									
+envoi_message_ligne1:									
 					lcall		ligne_1
 					lcall		emi_car
 					ret
+;texte a sauvegarder:
+txt_out:
+					db			"HORS DE LA CIBLE"
+					db			0
+txt_centre:
+					db			"PILE AU CENTRE !"
+					db			0
+txt_gauche:
+					db			"TROP A GAUCHE !!"
+					db			0
+txt_droite:
+					db			"TROP A DROITE !!"
+					db			0
 ;debut du programme--------------------
 debut:			
 					mov		tmod,#21h		;timer1 i mode 2 and timer0 in mode 1
 					lcall		init_lcd
 					mov		r0,#texte      ;put the RAM address of texte in R0
-					mov		a,#34h
-					mov		@r0,a
-					inc		r0
-					mov		@r0,#00h
-					lcall		envoi_message
+					mov		dptr,#txt_out
+					lcall		envoi_message_ligne1
 					mov		tl1,#0e6h		;for speed, not production value
 					mov		th1,#0e6h		;same as above
-					;mov		tampon,#34h
 					setb		ea	
 capture:
 					;mov		b,#20h
@@ -169,21 +178,6 @@ capture:
 					clr		ri
 					setb		es
 					mov		scon,#50h		;start reception
-;attente:											;wait for end of message signal (0 in ascii=30h)
-					;cjne		@r0,#tampon,termine_recep
-					;sjmp		attente	
-;termine_recep:
-					;clr		es
-					;mov		scon,#00h		;stop reception/emission
-					;clr 		tr1
-					;mov		#tampon,@r0
-;display:
-					;mov		r1,#texte		;R1 must be a usable copy of R0 while R0 will be used for data registering and R& for display
-					;lcall		envoi_message
-					;setb		P3.2
-					;clr		ie0
-					;setb		ex0				;int0
-					;setb		it0				;front descendant de P3.2
 					sjmp		$ 
 					end 
 
