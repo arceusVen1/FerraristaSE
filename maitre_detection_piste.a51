@@ -27,8 +27,8 @@ vdr1h			equ		0fdh		;(65536-670)
 vdr1l			equ		62h
 ;vmr1h			equ		0c1h		;(65536-16000)
 ;vmr1l			equ		80h
-vmr1h			equ		0c1h		;(65536-15900)
-vmr1l			equ		0e4h
+vmr1h			equ		0bah		;(65536-17700)	;valeur personnalisé  pour le moteur
+vmr1l			equ		0dch
 
 
 ;memoires recevant les valeurs a charger dans Timer0 
@@ -247,17 +247,25 @@ debut:
 				mov		r1,#1      ; 100x20ms = 2s
 				lcall		durecom    
 				
-reglage:
+reglage:		;différence 
 				mov		a,p1			; recuperation de valeur de capg et capd				
 				rlc		a				; recuperation de capg dans Carry
-				jc			gauche		; si capg = 1 on tourne à gauche
-				rlc		a				; recuperation de capd
-				jc			droite		; si capd = 1 on tourne à droite
-				sjmp		reglage		; attente d'un virage
+				jnc			test_virage_gauche		; si capg = 1 on tourne à gauche
+				;rlc		a				; recuperation de capd
+				;jc			droite		; si capd = 1 on tourne à droite
+				;sjmp		reglage		; attente d'un virage
+test_virage_droite:
+				rlc		a
+				jc			droite
+				sjmp		reglage
+test_virage_gauche:
+				rlc		a
+				jnc		gauche			
+				sjmp		reglage
 droite:
 				cpl		ledmc
 				mov		r6,#50
-				lcall		tournegauche	;sous prog de virage a droite
+				lcall		tournedroite	;sous prog de virage a droite
 				mov		r1,#25
 				lcall		durecom
 				sjmp		reglage
