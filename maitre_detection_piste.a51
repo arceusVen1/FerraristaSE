@@ -14,7 +14,7 @@ capg   			 bit     p1.7   ; capteur gauche
 capd   			 bit     p1.6   ; capteur droit
 
 ;declaration de l'octet configuration des LEDs
-ledK				equ		11h	 ; les deux leds
+ledK				data		30h	 ; les deux leds
 
 ;bit de flag
 finint 			 bit     	7Fh    ; indicateur de preparation du timer0
@@ -250,33 +250,44 @@ debut:
 reglage:		;différence 
 				mov		a,p1			; recuperation de valeur de capg et capd				
 				rlc		a				; recuperation de capg dans Carry
-				jnc			test_virage_gauche		; si capg = 1 on tourne à gauche
-				;rlc		a				; recuperation de capd
-				;jc			droite		; si capd = 1 on tourne à droite
-				;sjmp		reglage		; attente d'un virage
-test_virage_droite:
-				rlc		a
-				jc			droite
-				sjmp		reglage
-test_virage_gauche:
-				rlc		a
-				jnc		gauche			
-				sjmp		reglage
+				jnc		droite		; si capg = 0 (allumé) on tourne à droite
+				rlc		a				; recuperation de capd
+				jnc		gauche		; si capd = 0 (allumé) on tourne à gauche
+				sjmp		reglage		; attente d'un virage
+;test_virage_droite:
+				;rlc		a
+				;jc			droite
+				;sjmp		reglage
+;test_virage_gauche:
+				;rlc		a
+				;jnc		gauche
+				;jc			droite			
+				;sjmp		reglage
 droite:
 				cpl		ledmc
 				mov		r6,#50
 				lcall		tournedroite	;sous prog de virage a droite
-				mov		r1,#25
+				mov		r1,#1
 				lcall		durecom
+				lcall		recup_cap
+				cjne		r5,#192,droite
 				sjmp		reglage
 gauche:
 				cpl		ledmc
 				mov		r6,#50
 				lcall		tournegauche	;sous prog de virage a gauche
-				mov		r1,#25
+				mov		r1,#1
 				lcall		durecom
+				lcall		recup_cap
+				cjne		r5,#192,gauche
 				sjmp		reglage
-
+recup_cap:
+				mov		a,p1
+				mov		ledK,a
+				anl		ledK,#192		;récupere les valeurs des deux capteurs
+				mov		r5,ledk
+				ret
+				
 ;reglage:
 ;				mov		a,p1
 ;				rrc		a
